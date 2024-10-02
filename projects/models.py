@@ -47,8 +47,8 @@ class Project(models.Model):
 class Issue(models.Model):
     name = models.CharField(max_length=50, default='Issue')
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='authored_issues')  
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='issues')  # Уникальное имя для обратной связи
-    contributors = models.ManyToManyField(User, through=Contributor, related_name='issue_contributors')  # Уникальное имя для обратной связи
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='issues')  
+    contributors = models.ManyToManyField(User, through=Contributor, related_name='issue_contributors') 
     
     TYPE_CHOICES = [
         ('BUG', 'Bug'),

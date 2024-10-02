@@ -16,19 +16,27 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from projects.views import *
 from rest_framework import routers
+from projects.views import *
+from rest_framework_nested import routers as nested_routers
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
     TokenVerifyView
 )
 
+# Создаем основной роутер
 router = routers.SimpleRouter()
-router.register(r'projects', ProjectViewSet) # basename = 'projects'
+router.register(r'projects', ProjectViewSet, basename='projects')
+
+# Создаем вложенный роутер для задач
+projects_router = nested_routers.NestedSimpleRouter(router, r'projects', lookup='project')
+projects_router.register(r'issues', IssueViewSet, basename='project-issues')
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include(router.urls)),
+    path('api/v1/', include(projects_router.urls)), 
     path('api/v1/register/', UserRegistrationView.as_view(), name='register'),
     path('api-auth/', include('rest_framework.urls')),
     path('api/v1/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
