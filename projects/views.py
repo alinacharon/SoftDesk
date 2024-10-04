@@ -36,10 +36,32 @@ class ProjectViewSet(viewsets.ModelViewSet):
         user = self.request.user
         return Project.objects.filter(contributors=user)
 
-    @action(methods=['get'], detail=True)
-    def issues(self, request, pk=None):
-        issue = Issue.objects.get(pk=pk)
-        return Response({'type': issue.type, 'status': issue.status})
+    @action(methods=['post'], detail=True)
+    def add_project_contributors(self, request, pk=None):
+        project = self.get_object()  # Получаем проект по первичному ключу из URL
+        
+        # Проверка, что пользователь является владельцем проекта или контрибьютором
+        if not (request.user == project.author or request.user in project.contributors.all()):
+            return Response({"error": "You do not have permission to add contributors to this project."}, status=status.HTTP_403_FORBIDDEN)
+
+        # Получаем ID контрибьютора из запроса
+        contributor_id = request.data.get('contributor_id')
+        if not contributor_id:
+            return Response({"error": "Contributor ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            contributor_to_add = User.objects.get(pk=contributor_id)
+        except User.DoesNotExist:
+            return Response({"error": "Contributor not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Проверяем, является ли пользователь уже контрибьютором проекта
+        if Contributor.objects.filter(contributor=contributor_to_add, project=project).exists():
+            return Response({"error": "This user is already a contributor to this project."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Создаем нового контрибьютора
+        Contributor.objects.create(contributor=contributor_to_add, project=project)
+
+        return Response({"message": f"{contributor_to_add.username} has been added as a contributor."}, status=status.HTTP_201_CREATED)
 
 
 class IssueViewSet(viewsets.ModelViewSet):
