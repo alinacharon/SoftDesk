@@ -1,5 +1,6 @@
 from rest_framework import generics, viewsets, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from .permissions import *
@@ -29,7 +30,7 @@ class UserRegistrationView(generics.CreateAPIView):
 
 class ProjectViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectSerializer
-    permission_classes = [ContributorsOnly]
+    permission_classes = [ContributorsOnly, IsOwnerOrReadOnly]
 
     def get_queryset(self):
         user = self.request.user
@@ -43,43 +44,43 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
 class IssueViewSet(viewsets.ModelViewSet):
     serializer_class = IssueSerializer
-
     permission_classes = [IsOwnerOrReadOnly, ContributorsOnly]
 
     def get_queryset(self):
-        project_id = self.request.GET.get('project_id')
-        queryset = Issue.objects.all()
-        if project_id:
-            queryset = Issue.objects.filter(project_id=project_id)
-        return queryset
+        user = self.request.user
 
-    @action(methods=['get'], detail=True)
-    def comments(self, request, pk=None):
-        comment = Comment.objects.get(pk=pk)
-        return Response({'type': comment.type, 'status': comment.status})
+        project_id = self.request.GET.get('project_id')
+
+        if project_id:
+            return Issue.objects.filter(project_id=project_id)
+        else:
+            return Issue.objects.filter(project__contributors=user)
+
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = [ContributorsOnly]
+    permission_classes = [ContributorsOnly, IsOwnerOrReadOnly]
 
     def get_queryset(self):
         issue_id = self.request.GET.get('issue_id')
-        queryset = Comment.objects.all()  # Извлекаем все комментарии
+        queryset = Comment.objects.all()
 
         if issue_id:
-            queryset = queryset.filter(issue_id=issue_id)  # Фильтруем по ID задачи
+            queryset = queryset.filter(issue_id=issue_id)
 
         return queryset
 
 
+class ContributorViewSet(viewsets.ModelViewSet):
+    queryset = Contributor.objects.all()
+    serializer_class = ContributorSerializer
+    permission_classes = [IsOwnerOrReadOnly]
 
-
-# class ProjectAPIList(generics.ListCreateAPIView):
-#     #permission_classes = [IsAuthenticated]
-#     queryset = Project.objects.all()
-#     serializer_class = ProjectSerializer
-
-# class ProjectAPIDetail(generics.RetrieveUpdateDestroyAPIView):
-#     #permission_classes = [IsAuthenticated]
-#     queryset = Project.objects.all()
-#     serializer_class = ProjectSerializer
+    def perform_create(self, serializer):
+        project_id = self.request.data.get('project')
+        project = Project.objects.get(id=project_id)
+        if Contributor.objects.filter(user=self.request.user, project=project).exists():
+            serializer.save(user=self.request.user, project=project)
+        else:
+            raise PermissionDenied(
+                "You are not authorized to add contributors to this project.")

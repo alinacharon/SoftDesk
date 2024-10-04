@@ -1,3 +1,4 @@
+from .models import Project, Issue, Comment
 from rest_framework import permissions
 
 from .models import *
@@ -17,23 +18,34 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
 
 class ContributorsOnly(permissions.BasePermission):
     """
-    Позволяет доступ только контрибьюторам проекта или задачи.
+    Allows access only to the contributors of the project, its issues, and comments
     """
 
     def has_permission(self, request, view):
-        return request.user.is_authenticated
+        user = request.user
+        if not user.is_authenticated:
+            return False
+
+        if view.action == 'list':
+            project_id = request.GET.get('project_id')
+
+            if project_id:
+                return Project.objects.filter(id=project_id, contributors=user).exists()
+
+            return Project.objects.filter(contributors=user).exists()
+
+        return True
 
     def has_object_permission(self, request, view, obj):
         user = request.user
 
-        # Если объект - это проект, проверяем, является ли пользователь контрибьютором
         if isinstance(obj, Project):
             return user in obj.contributors.all()
 
-        # Если объект - это комментарий, проверяем контрибьюторов связанной задачи
+        if isinstance(obj, Issue):
+            return user in obj.project.contributors.all()
+
         if isinstance(obj, Comment):
-            # Получаем связанную задачу
-            issue = obj.issue
-            return user in issue.project.contributors.all()
+            return user in obj.issue.project.contributors.all()
 
         return False

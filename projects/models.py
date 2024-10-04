@@ -11,23 +11,11 @@ class User(AbstractUser):
         return self.username
 
 
-class Contributor(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    project = models.ForeignKey(
-        'Project', on_delete=models.CASCADE, related_name='project_contributors')
-    issue = models.ForeignKey('Issue', on_delete=models.CASCADE,
-                              null=True, blank=True, related_name='issue_contributors')
-    created_time = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f'{self.user.username} - Contributor in {self.project.name}'
-
-
 class Project(models.Model):
     name = models.CharField(max_length=50, default='Project')
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     contributors = models.ManyToManyField(
-        User, related_name='projects', through=Contributor)
+        User, related_name='project_contributor')
     description = models.TextField(max_length=1200)
     TYPE_CHOICES = [
         ('back-end', 'Back-End'),
@@ -51,14 +39,22 @@ class Project(models.Model):
         return f'{self.name} - {self.description[:50]}'
 
 
+class Contributor(models.Model):
+    contributor = models.ForeignKey(User, on_delete=models.CASCADE)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.user.username} - Contributor in {self.project.name}'
+
+
 class Issue(models.Model):
     name = models.CharField(max_length=50, default='Issue')
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='authored_issues')
     project = models.ForeignKey(
         Project, on_delete=models.CASCADE, related_name='issues')
-    contributors = models.ManyToManyField(
-        User, through=Contributor, related_name='issue_contributors')
+    assigned_users = models.ForeignKey(Contributor, on_delete=models.CASCADE,
+                                       related_name='issues_assigned', null=True, blank=True)
 
     TYPE_CHOICES = [
         ('BUG', 'Bug'),
@@ -94,4 +90,4 @@ class Comment(models.Model):
     updated_time = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.description[:50]
+        return f'Issue name: {self.issue.name} - {self.description[:30]}'

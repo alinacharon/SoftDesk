@@ -17,12 +17,14 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
-class IssueSerializer(serializers.ModelSerializer):
-    author = serializers.HiddenField(default=serializers.CurrentUserDefault())
+class ContributorSerializer(serializers.ModelSerializer):
+    user = serializers.SlugRelatedField(
+        # Работаем с username вместо user
+        slug_field='username', queryset=User.objects.all())
 
     class Meta:
-        model = Issue
-        fields = "__all__"
+        model = Contributor
+        fields = ['user', 'project', 'issue', 'created_time']
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -33,10 +35,23 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class IssueSerializer(serializers.ModelSerializer):
+    author = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    assigned_users = serializers.SlugRelatedField(
+        slug_field='username', queryset=User.objects.all(), many=True)
+
+    class Meta:
+        model = Issue
+        fields = ['name', 'type', 'assigned_users', 'author', 'level']
+
+
 class ProjectSerializer(serializers.ModelSerializer):
     author = serializers.HiddenField(default=serializers.CurrentUserDefault())
     issues = IssueSerializer(many=True, read_only=True)
+    contributors = serializers.SlugRelatedField(
+        slug_field='username', queryset=User.objects.all(), many=True)
 
     class Meta:
         model = Project
-        fields = "__all__"
+        fields = ['name', 'description', 'type',
+                  'contributors', 'author', 'issues']
