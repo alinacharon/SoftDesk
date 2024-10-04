@@ -28,15 +28,17 @@ from rest_framework_simplejwt.views import (
 # Создаем основной роутер
 router = routers.SimpleRouter()
 router.register(r'projects', ProjectViewSet, basename='projects')
+router.register(r'issues', IssueViewSet, basename='issues')
+router.register(r'comments', CommentViewSet, basename='comments')
 
-# Создаем вложенный роутер для задач
-projects_router = nested_routers.NestedSimpleRouter(router, r'projects', lookup='project')
-projects_router.register(r'issues', IssueViewSet, basename='project-issues')
+# # Создаем вложенный роутер для задач
+# projects_router = nested_routers.NestedSimpleRouter(router, r'projects', lookup='project')
+# projects_router.register(r'issues', IssueViewSet, basename='project-issues')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include(router.urls)),
-    path('api/v1/', include(projects_router.urls)), 
+    # path('api/v1/', include(projects_router.urls)), 
     path('api/v1/register/', UserRegistrationView.as_view(), name='register'),
     path('api-auth/', include('rest_framework.urls')),
     path('api/v1/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
