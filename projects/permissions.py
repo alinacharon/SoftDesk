@@ -16,6 +16,9 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
         return obj.author == request.user
 
 
+# projects/permissions.py
+
+
 class ContributorsOnly(permissions.BasePermission):
     """
     Allows access only to the contributors of the project, its issues, and comments
@@ -28,9 +31,17 @@ class ContributorsOnly(permissions.BasePermission):
 
         if view.action == 'list':
             project_id = request.GET.get('project_id')
+            issue_id = request.GET.get('issue_id')
 
             if project_id:
                 return Project.objects.filter(id=project_id, contributors=user).exists()
+
+            if issue_id:
+                try:
+                    issue = Issue.objects.get(id=issue_id)
+                except Issue.DoesNotExist:
+                    return False
+                return issue.project.contributors.filter(id=user.id).exists()
 
             return Project.objects.filter(contributors=user).exists()
 

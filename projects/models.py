@@ -3,7 +3,7 @@ from django.db import models
 
 
 class User(AbstractUser):
-    age = models.PositiveIntegerField(default='18')
+    age = models.PositiveIntegerField(default=18)
     can_be_contacted = models.BooleanField(default=False)
     can_data_be_shared = models.BooleanField(default=False)
 
@@ -39,23 +39,14 @@ class Project(models.Model):
         return f'{self.name} - {self.description[:50]}'
 
 
-class Contributor(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE)
-    created_time = models.DateTimeField(auto_now_add=True, blank=True)
-
-    def __str__(self):
-        return f'{self.user.username} - Contributor in {self.project.name}'
-
-
 class Issue(models.Model):
     name = models.CharField(max_length=50, default='Issue')
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='authored_issues')
     project = models.ForeignKey(
         Project, on_delete=models.CASCADE, related_name='issues')
-    assigned_users = models.ForeignKey(Contributor, on_delete=models.CASCADE,
-                                       related_name='issues_assigned', null=True, blank=True)
+    assigned_users = models.ManyToManyField(
+        User, related_name='assigned_issues', blank=True)
 
     TYPE_CHOICES = [
         ('BUG', 'Bug'),

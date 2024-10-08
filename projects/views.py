@@ -2,6 +2,7 @@ from rest_framework import generics, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from django.contrib.auth.models import User, Group
 
 from .permissions import *
 from .serializers import *
@@ -45,7 +46,22 @@ class IssueViewSet(viewsets.ModelViewSet):
         user = self.request.user
         return Issue.objects.filter(project__contributors=user)
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['view'] = self
+        return context
 
+    def create(self, request, *args, **kwargs):
+        project_id = request.data.get('project')
+        try:
+            project = Project.objects.get(id=project_id)
+        except Project.DoesNotExist:
+            return Response({"error": "Project not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not project.contributors.filter(id=request.user.id).exists():
+            return Response({"error": f"L'utilisateur {request.user.username} n'est pas un contributeur de ce projet."}, status=status.HTTP_403_FORBIDDEN)
+
+        return super().create(request, *args, **kwargs)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -53,25 +69,13 @@ class CommentViewSet(viewsets.ModelViewSet):
     permission_classes = [ContributorsOnly, IsOwnerOrReadOnly]
 
     def get_queryset(self):
-        issue_id = self.request.GET.get('issue_id')
-        queryset = Comment.objects.all()
-
-        if issue_id:
-            queryset = queryset.filter(issue_id=issue_id)
-
-        return queryset
+        user = self.request.user
+        return Comment.objects.filter(issue__assigned_users=user)
 
 
-class ContributorViewSet(viewsets.ModelViewSet):
-    queryset = Contributor.objects.all()
-    serializer_class = ContributorSerializer
-    permission_classes = [IsOwnerOrReadOnly]
+class ContributorViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = UserSerializer
 
-    def perform_create(self, serializer):
-        project_id = self.request.data.get('project')
-        project = Project.objects.get(id=project_id)
-        if Contributor.objects.filter(user=self.request.user, project=project).exists():
-            serializer.save(user=self.request.user, project=project)
-        else:
-            raise PermissionDenied(
-                "You are not authorized to add contributors to this project.")
+    def get_queryset(self):
+        group = Group.objects.get(name='Contributors')
+        return User.objects.filter(groups=group)
