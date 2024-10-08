@@ -18,13 +18,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 
 class ContributorSerializer(serializers.ModelSerializer):
-    user = serializers.SlugRelatedField(
-        # Работаем с username вместо user
-        slug_field='username', queryset=User.objects.all())
-
     class Meta:
         model = Contributor
-        fields = ['user', 'project', 'issue', 'created_time']
+        fields = ['user', 'project']
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -37,8 +33,6 @@ class CommentSerializer(serializers.ModelSerializer):
 
 class IssueSerializer(serializers.ModelSerializer):
     author = serializers.HiddenField(default=serializers.CurrentUserDefault())
-    assigned_users = serializers.SlugRelatedField(
-        slug_field='username', queryset=User.objects.all(), many=True)
 
     class Meta:
         model = Issue
@@ -48,8 +42,7 @@ class IssueSerializer(serializers.ModelSerializer):
 class ProjectSerializer(serializers.ModelSerializer):
     author = serializers.HiddenField(default=serializers.CurrentUserDefault())
     issues = IssueSerializer(many=True, read_only=True)
-    contributors = serializers.SlugRelatedField(
-        slug_field='username', queryset=User.objects.all(), many=True)
+   
 
     class Meta:
         model = Project

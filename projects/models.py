@@ -3,7 +3,7 @@ from django.db import models
 
 
 class User(AbstractUser):
-    age = models.PositiveIntegerField()
+    age = models.PositiveIntegerField(default='18')
     can_be_contacted = models.BooleanField(default=False)
     can_data_be_shared = models.BooleanField(default=False)
 
@@ -40,8 +40,9 @@ class Project(models.Model):
 
 
 class Contributor(models.Model):
-    contributor = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    created_time = models.DateTimeField(auto_now_add=True, blank=True)
 
     def __str__(self):
         return f'{self.user.username} - Contributor in {self.project.name}'
