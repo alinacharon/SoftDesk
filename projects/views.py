@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework import generics, viewsets, status
 from rest_framework.decorators import action
+from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.response import Response
 
 from .permissions import *
@@ -38,6 +39,28 @@ class UserRegistrationView(generics.CreateAPIView):
             user = serializer.save()
             return Response({"message": "Utilisateur enregistré avec succès."}, status=status.HTTP_201_CREATED)
 
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserProfileView(RetrieveUpdateDestroyAPIView):
+    """
+    API view for user to managing his profile.
+    """
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        user = self.request.user
+        serializer = self.get_serializer(user)
+        return Response(serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        user = self.request.user
+        serializer = UserSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

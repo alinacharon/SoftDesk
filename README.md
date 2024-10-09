@@ -1,155 +1,204 @@
 # SoftDesk API Documentation
 
-## Register
+## Authentication Endpoints
 
-\***\*Endpoint:\*\***
+### Register
 
-POST http://127.0.0.1:8000/api/v1/register/
+**Endpoint:** `POST /api/v1/register/`
+
+**Description:** Register a new user account.
 
 **Request Body:**
-
 ```json
 {
     "username": "your_username",
     "password": "your_password",
     "age": 20,
     "can_be_contacted": true,
-    "can_data_be_shared": false,
+    "can_data_be_shared": false
 }
 ```
 
-## LogIn
-**Endpoint:**
+**Notes:**
+- Users must be at least 15 years old to consent to data sharing
+- Already authenticated users cannot register again
 
-POST http://127.0.0.1:8000/api/v1/token/
+### Login
+
+**Endpoint:** `POST /api/v1/token/`
 
 **Request Body:**
-
 ```json
 {
-  "username": "your_username",
-  "password": "your_password"
+    "username": "your_username",
+    "password": "your_password"
 }
 ```
-## Refresh Token
-**Endpoint:**
 
-POST http://127.0.0.1:8000/api/v1/token/refresh/
+### Refresh Token
+
+**Endpoint:** `POST /api/v1/token/refresh/`
 
 **Request Body:**
-
-
+```json
 {
-  "refresh": "your_refresh_token"
+    "refresh": "your_refresh_token"
 }
-## Create New Project
-**Endpoint:**
+```
 
-POST http://127.0.0.1:8000/api/v1/projects/
+### Verify Token
+
+**Endpoint:** `POST /api/v1/token/verify/`
 
 **Request Body:**
+```json
+{
+    "token": "your_access_token"
+}
+```
 
- {
+## User Profile
+
+### View/Update Profile
+
+**Endpoint:** `GET/PUT /api/v1/profile/`
+
+**Description:** Retrieve or update the authenticated user's profile.
+
+**Authentication:** Required
+
+**Request Body (for PUT):**
+```json
+{
+    "username": "updated_username",
+    // Other user fields you want to update
+}
+```
+
+## Projects
+
+### Create New Project
+
+**Endpoint:** `POST /api/v1/projects/`
+
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
     "name": "Project Name",
     "description": "Project Description",
-    "type": "Project type",
-    "contributors": [1, 2, 3] // Optional: List of contributor IDs
-    }
-## View All Projects
-**Endpoint:**
+    "type": "Project type", // Options: 
+    "contributors": [1, 2, 3]  // Optional: List of contributor IDs
+}
+```
 
-GET http://127.0.0.1:8000/api/v1/projects/
+### View All Projects
 
-Request Headers:
+**Endpoint:** `GET /api/v1/projects/`
 
-Authorization: JWT <your_token>
-Content-Type: application/json
+**Authentication:** Required
 
-## Add contributors to a project
+**Description:** Returns all projects where the authenticated user is a contributor.
 
-**Endpoint:**
-POST http://127.0.0.1:8000/api/v1/projects/<project_id>/add_contributor/
+### Manage Project Contributors
 
-Request Headers:
+#### Add Contributor
 
-Authorization: JWT <your_token>
-Content-Type: application/json
+**Endpoint:** `POST /api/v1/projects/{project_id}/add_contributor/`
+
+**Authentication:** Required
+
+**Permission:** Project owner only
+
 **Request Body:**
+```json
 {
     "user_id": 1
 }
+```
 
-## Delete contributor from the project
+#### Remove Contributor
 
-**Endpoint:**
-DELETE http://127.0.0.1:8000/api/v1/projects/1/remove_contributor/
+**Endpoint:** `DELETE /api/v1/projects/{project_id}/remove_contributor/`
 
-Request Headers:
+**Authentication:** Required
 
-Authorization: JWT <your_token>
-Content-Type: application/json
+**Permission:** Project owner only
+
 **Request Body:**
+```json
 {
     "user_id": 1
 }
+```
 
-## Create New Issue
-**Endpoint:**
+## Issues
 
-POST http://127.0.0.1:8000/api/v1/issues/
+### Create New Issue
+
+**Endpoint:** `POST /api/v1/issues/`
+
+**Authentication:** Required
+
+**Permission:** Project contributors only
 
 **Request Body:**
+```json
 {
     "name": "Issue Title",
-    "type": "Issue type", // Choose from those options: 'BUG','FEATURE','TASK'
-    "level": "Issue level", // Choose from those options:'LOW','MEDIUM','HIGH'
-    "assigned_users": [1], // Optional: List of contributor IDs
-    "project": 1 // Project_id is required
+    "type": "BUG",  // Options: 'BUG', 'FEATURE', 'TASK'
+    "level": "LOW",  // Options: 'LOW', 'MEDIUM', 'HIGH'
+    "status": "To do", // Options:'To Do','In Progress','Finished'.By default = 'To do'.
+    "assigned_users": [1],  // Optional: List of contributor IDs
+    "project": 1  // Required: Project ID
 }
-
-Description:
-
-This endpoint allows contributors to create a new issue for a specific project. The issue can be named, described, and optionally assigned to another contributor.
-
-Request Headers:
-
-Authorization: JWT <your_token>
-Content-Type: application/json
-
-Response:
-
-201 Created: Issue created successfully.
-400 Bad Request: Invalid request data.
-401 Unauthorized: Invalid token.
-403 Forbidden: User does not have permission to create an issue.
-404 Not Found: Project or contributor not found.
-
-## Update an Issue
-**Endpoint:**
-
-PATCH http://127.0.0.1:8000/api/v1/issues/<issue_id>/
-
-Description:
-
-This endpoint allows contributors to update an existing issue.
-
-Request Headers:
-
-Authorization: JWT <your_token>
-Content-Type: application/json
-**Request Body:**
-
-
-{
-  "name": "Updated Issue Title",
-  "description": "Updated description of the issue.",
-  "contributor": 3 // Optional: ID of the new contributor to assign the issue to
-}
-Response:
-
-200 OK: Issue updated successfully.
-400 Bad Request: Invalid request data.
-401 Unauthorized: Invalid token.
-403 Forbidden: User does not have permission to update the issue.
-404 Not Found: Project, issue, or contributor not found.
 ```
+
+### View Issues
+
+**Endpoint:** `GET /api/v1/issues/`
+
+**Authentication:** Required
+
+**Description:** Returns all issues for projects where the user is a contributor.
+
+## Comments
+
+### Manage Comments
+
+**Base Endpoint:** `/api/v1/comments/`
+
+**Authentication:** Required
+
+**Permissions:** 
+- View: Project contributors
+- Create/Update/Delete: Comment owner or project admin
+
+## Contributors
+
+### View Contributors
+
+**Endpoint:** `GET /api/v1/contributors/`
+
+**Authentication:** Required
+
+**Permission:** Admin only
+
+**Query Parameters:**
+- `project_id`: Optional. Filter contributors by specific project
+
+## General Notes
+
+- All endpoints except registration and login require authentication
+- Authentication is done using JWT tokens
+- Include the token in the Authorization header: `Authorization: JWT <your_token>`
+- All requests should include `Content-Type: application/json` header
+
+## Error Responses
+
+Common error status codes:
+- 400 Bad Request: Invalid data provided
+- 401 Unauthorized: Authentication required or invalid
+- 403 Forbidden: User doesn't have required permissions
+- 404 Not Found: Requested resource doesn't exist

@@ -1,6 +1,19 @@
 from rest_framework import permissions
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.permissions import BasePermission
 
 from .models import *
+
+
+class IsAuthenticated(BasePermission):
+    """
+    Allows access only to authenticated users.
+    """
+
+    def has_permission(self, request, view):
+        if not request.user.is_authenticated:
+            raise AuthenticationFailed('User is not authenticated')
+        return True
 
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
