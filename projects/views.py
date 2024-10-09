@@ -1,3 +1,7 @@
+from .serializers import IssueSerializer
+from .models import Issue, Project, Contributor
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets, status
 from django.contrib.auth.models import User
 from rest_framework import generics, viewsets, status
 from rest_framework.decorators import action
@@ -140,30 +144,29 @@ class IssueViewSet(viewsets.ModelViewSet):
     API view for managing issues within projects.
     """
     serializer_class = IssueSerializer
-    permission_classes = [IsOwnerOrReadOnly, ContributorsOnly]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """
-        Retrieves the list of issues for projects associated with the user.
+        Retrieves the list of issues for a specific project.
 
         Returns:
-            QuerySet: A queryset of issues related to the user's projects.
+            QuerySet: A queryset of issues related to the specified project.
         """
-        user = self.request.user
-        # Filter through the Contributor model
-        return Issue.objects.filter(project__in=Contributor.objects.filter(user=user).values('project'))
+        project_id = self.kwargs.get('project_pk')
+        return Issue.objects.filter(project_id=project_id)
 
     def create(self, request, *args, **kwargs):
         """
         Creates a new issue for a specified project.
 
-        Validates the project ID, checks if the user is a contributor 
+        Validates the project ID, checks if the user is a contributor
         to the project, and creates the issue if all validations pass.
 
         Returns:
             Response: A response indicating success or error.
         """
-        project_id = request.data.get('project')
+        project_id = self.kwargs.get('project_pk')
 
         if not project_id:
             return Response({"error": "Project ID is required."}, status=status.HTTP_400_BAD_REQUEST)
@@ -194,8 +197,8 @@ class CommentViewSet(viewsets.ModelViewSet):
         Returns:
             QuerySet: A queryset of comments for issues associated with the user's projects.
         """
-        user = self.request.user
-        return Comment.objects.filter(issue__project__contributor__user=user)
+        issue_id = self.kwargs.get('issue_pk')
+        return Comment.objects.filter(issue_id=issue_id)
 
 
 class ContributorViewSet(viewsets.ReadOnlyModelViewSet):

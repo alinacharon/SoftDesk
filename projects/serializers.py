@@ -74,6 +74,11 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ['id', 'description', 'author',
                   'created_time', 'updated_time']
 
+    def create(self, validated_data):
+        issue_id = self.context['view'].kwargs.get('issue_pk')
+        validated_data['issue_id'] = issue_id
+        return super().create(validated_data)
+
 
 class IssueSerializer(serializers.ModelSerializer):
     """
@@ -92,33 +97,25 @@ class IssueSerializer(serializers.ModelSerializer):
     class Meta:
         model = Issue
         fields = ['name', 'id', 'type', 'assigned_users',
-                  'author', 'level', 'project', 'comments']
+                  'author', 'level', 'comments', 'created_time', 'updated_time', 'status']
 
     def validate_assigned_users(self, value):
-        """
-        Validates that the assigned users are contributors to the specified project.
-
-        Args:
-            value (list): The list of assigned users to validate.
-
-        Raises:
-            serializers.ValidationError: If a user is not a contributor of the project.
-
-        Returns:
-            list: The validated list of assigned users.
-        """
-        project_id = self.initial_data.get('project')
-
+        project_id = self.initial_data.get(
+            'project') or self.context['view'].kwargs.get('project_pk')
         try:
             project = Project.objects.get(id=project_id)
         except Project.DoesNotExist:
             raise serializers.ValidationError("Project not found.")
-
         for user in value:
             if not Contributor.objects.filter(project=project, user=user).exists():
                 raise serializers.ValidationError(
                     f"User with ID {user.id} is not a contributor of this project.")
         return value
+
+    def create(self, validated_data):
+        project_id = self.context['view'].kwargs.get('project_pk')
+        validated_data['project_id'] = project_id
+        return super().create(validated_data)
 
 
 class ProjectSerializer(serializers.ModelSerializer):

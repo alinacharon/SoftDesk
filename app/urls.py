@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework import routers
+from rest_framework_nested import routers as nested_routers
 from projects.views import *
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -26,13 +27,23 @@ from rest_framework_simplejwt.views import (
 
 router = routers.SimpleRouter()
 router.register(r'projects', ProjectViewSet, basename='projects')
-router.register(r'issues', IssueViewSet, basename='issues')
-router.register(r'comments', CommentViewSet, basename='comments')
-router.register(r'contributors', ContributorViewSet, basename='contributors')
+
+# For issues in projects
+projects_router = nested_routers.NestedSimpleRouter(router, r'projects', lookup='project')
+projects_router.register(r'issues', IssueViewSet, basename='project-issues')
+
+# For comments in issues
+issues_router = nested_routers.NestedSimpleRouter(projects_router, r'issues', lookup='issue')
+issues_router.register(r'comments', CommentViewSet, basename='issue-comments')
+
+# For contributors in projects
+projects_router.register(r'contributors', ContributorViewSet, basename='project-contributors')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include(router.urls)),
+    path('api/v1/', include(projects_router.urls)),
+    path('api/v1/', include(issues_router.urls)),
     path('api/v1/register/', UserRegistrationView.as_view(), name='register'),
     path('api/v1/profile/', UserProfileView.as_view(), name='profile'),
     path('api-auth/', include('rest_framework.urls')),
