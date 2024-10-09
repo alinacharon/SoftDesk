@@ -71,7 +71,8 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = "__all__"
+        fields = ['id', 'description', 'author',
+                  'created_time', 'updated_time']
 
 
 class IssueSerializer(serializers.ModelSerializer):
@@ -85,11 +86,13 @@ class IssueSerializer(serializers.ModelSerializer):
     assigned_users = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), many=True
     )
+    comments = CommentSerializer(
+        many=True, read_only=True, source='comment_set')
 
     class Meta:
         model = Issue
         fields = ['name', 'id', 'type', 'assigned_users',
-                  'author', 'level', 'project']
+                  'author', 'level', 'project', 'comments']
 
     def validate_assigned_users(self, value):
         """
@@ -131,7 +134,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ['name', 'description', 'type',
+        fields = ['name', 'id', 'description', 'type',
                   'author', 'contributors', 'issues']
 
     def get_contributors(self, obj):

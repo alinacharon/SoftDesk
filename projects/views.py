@@ -82,7 +82,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return Project.objects.filter(contributor__user=user)
 
     @action(detail=True, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
-    def add_contributor(self, request):
+    def add_contributor(self, request, pk=None):
         """
         Adds a contributor to a specific project.
 
@@ -108,7 +108,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return Response({"message": f"{user.username} added as contributor to {project.name}"})
 
     @action(detail=True, methods=['delete'], permission_classes=[IsOwnerOrReadOnly])
-    def remove_contributor(self, request):
+    def remove_contributor(self, request, pk=None):
         """
         Removes a contributor from a specific project.
 
@@ -124,6 +124,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         """
         project = self.get_object()
         user_id = request.data.get('user_id')
+        user = User.objects.get(id=user_id)
         try:
             contributor = Contributor.objects.get(
                 user_id=user_id, project=project)
@@ -131,7 +132,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return Response({"error": "Contributor not found"}, status=status.HTTP_404_NOT_FOUND)
 
         contributor.delete()
-        return Response({"message": f"Contributor removed from {project.name}"})
+        return Response({"message": f"Contributor {user.username} removed from {project.name}"})
 
 
 class IssueViewSet(viewsets.ModelViewSet):
