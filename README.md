@@ -88,7 +88,7 @@
 {
     "name": "Project Name",
     "description": "Project Description",
-    "type": "Project type", // Options: 
+    "type": "Project type",
     "contributors": [1, 2, 3]  // Optional: List of contributor IDs
 }
 ```
@@ -101,7 +101,13 @@
 
 **Description:** Returns all projects where the authenticated user is a contributor.
 
-### Manage Project Contributors
+### Project Contributors
+
+#### List Contributors
+
+**Endpoint:** `GET /api/v1/projects/{project_id}/contributors/`
+
+**Authentication:** Required
 
 #### Add Contributor
 
@@ -137,7 +143,7 @@
 
 ### Create New Issue
 
-**Endpoint:** `POST /api/v1/issues/`
+**Endpoint:** `POST /api/v1/projects/{project_id}/issues/`
 
 **Authentication:** Required
 
@@ -149,44 +155,52 @@
     "name": "Issue Title",
     "type": "BUG",  // Options: 'BUG', 'FEATURE', 'TASK'
     "level": "LOW",  // Options: 'LOW', 'MEDIUM', 'HIGH'
-    "status": "To do", // Options:'To Do','In Progress','Finished'.By default = 'To do'.
-    "assigned_users": [1],  // Optional: List of contributor IDs
-    "project": 1  // Required: Project ID
+    "status": "To do", // Options:'To Do','In Progress','Finished'. Default = 'To do'
+    "assigned_users": [1]  // Optional: List of contributor IDs
 }
 ```
 
-### View Issues
+### View Project Issues
 
-**Endpoint:** `GET /api/v1/issues/`
+**Endpoint:** `GET /api/v1/projects/{project_id}/issues/`
 
 **Authentication:** Required
 
-**Description:** Returns all issues for projects where the user is a contributor.
+**Description:** Returns all issues for a specific project.
 
 ## Comments
 
-### Manage Comments
+### Create Comment
 
-**Base Endpoint:** `/api/v1/comments/`
-
-**Authentication:** Required
-
-**Permissions:** 
-- View: Project contributors
-- Create/Update/Delete: Comment owner or project admin
-
-## Contributors
-
-### View Contributors
-
-**Endpoint:** `GET /api/v1/contributors/`
+**Endpoint:** `POST /api/v1/projects/{project_id}/issues/{issue_id}/comments/`
 
 **Authentication:** Required
 
-**Permission:** Admin only
+**Permission:** Project contributors
 
-**Query Parameters:**
-- `project_id`: Optional. Filter contributors by specific project
+**Request Body:**
+```json
+{
+    "description": "Comment text"
+}
+```
+
+### View Comments
+
+**Endpoint:** `GET /api/v1/projects/{project_id}/issues/{issue_id}/comments/`
+
+**Authentication:** Required
+
+**Permission:** Project contributors
+
+### Update/Delete Comment
+
+**Endpoints:** 
+- PUT/DELETE `/api/v1/projects/{project_id}/issues/{issue_id}/comments/{comment_id}/`
+
+**Authentication:** Required
+
+**Permission:** Comment owner or project admin
 
 ## General Notes
 

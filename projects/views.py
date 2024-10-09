@@ -76,68 +76,80 @@ class ProjectViewSet(viewsets.ModelViewSet):
     permission_classes = [ContributorsOnly, IsOwnerOrReadOnly]
 
     def get_queryset(self):
-        """
-        Retrieves the list of projects for the authenticated user.
-
-        Returns:
-            QuerySet: A queryset of projects associated with the user.
-        """
         user = self.request.user
         return Project.objects.filter(contributor__user=user)
 
     @action(detail=True, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
     def add_contributor(self, request, pk=None):
-        """
-        Adds a contributor to a specific project.
-
-        Validates the provided user ID and adds the user as a contributor 
-        to the project if found. Returns a success message or an error 
-        if the user is not found.
-
-        Args:
-            request: The request object containing the user ID to add.
-
-        Returns:
-            Response: A response indicating success or error.
-        """
         project = self.get_object()
         user_id = request.data.get('user_id')
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "User not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Проверяем, не является ли пользователь уже контрибьютором
+        if Contributor.objects.filter(user=user, project=project).exists():
+            return Response(
+                {"error": "User is already a contributor"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         Contributor.objects.create(
-            user=user, project=project, role='CONTRIBUTOR')
-        return Response({"message": f"{user.username} added as contributor to {project.name}"})
+            user=user,
+            project=project,
+            role='CONTRIBUTOR'
+        )
+        return Response({
+            "message": f"{user.username} added as contributor to {project.name}"
+        })
 
     @action(detail=True, methods=['delete'], permission_classes=[IsOwnerOrReadOnly])
     def remove_contributor(self, request, pk=None):
         """
         Removes a contributor from a specific project.
-
-        Validates the provided user ID and removes the user as a contributor 
-        from the project if found. Returns a success message or an error 
-        if the contributor is not found.
-
-        Args:
-            request: The request object containing the user ID to remove.
-
-        Returns:
-            Response: A response indicating success or error.
         """
         project = self.get_object()
-        user_id = request.data.get('user_id')
-        user = User.objects.get(id=user_id)
+        user_id = request.data.get('user_id')  # Используем user_id как раньше
+        
         try:
             contributor = Contributor.objects.get(
-                user_id=user_id, project=project)
+                user_id=user_id,  # Ищем по user_id
+                project=project
+            )
         except Contributor.DoesNotExist:
-            return Response({"error": "Contributor not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "Contributor not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Contributor.MultipleObjectsReturned:
+            # Если вдруг есть дубликаты, удаляем все
+            contributors = Contributor.objects.filter(
+                user_id=user_id,
+                project=project
+            )
+            username = contributors.first().user.username
+            contributors.delete()
+            return Response({
+                "message": f"All contributions by {username} removed from {project.name}"
+            })
+        
+        # Проверяем, не пытается ли пользователь удалить владельца проекта
+        if contributor.role == 'OWNER':
+            return Response(
+                {"error": "Cannot remove project owner"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
+        username = contributor.user.username
         contributor.delete()
-        return Response({"message": f"Contributor {user.username} removed from {project.name}"})
-
+        
+        return Response({
+            "message": f"Contributor {username} removed from {project.name}"
+        })
 
 class IssueViewSet(viewsets.ModelViewSet):
     """
@@ -201,25 +213,19 @@ class CommentViewSet(viewsets.ModelViewSet):
         return Comment.objects.filter(issue_id=issue_id)
 
 
-class ContributorViewSet(viewsets.ReadOnlyModelViewSet):
+class ContributorViewSet(viewsets.ModelViewSet):
     """
     API view for managing contributors associated with projects.
     """
     serializer_class = UserSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [ContributorsOnly]
 
     def get_queryset(self):
         """
         Retrieves the list of users who are contributors to a specific project.
 
-        If a project ID is provided, returns only the contributors for that project.
-        Otherwise, returns all users who are contributors in any project.
-
         Returns:
-            QuerySet: A queryset of users who are contributors.
+            QuerySet: A queryset of users who are contributors to the specified project.
         """
-        project_id = self.request.query_params.get('project_id')
-        if project_id:
-            return User.objects.filter(contributor__project_id=project_id).distinct()
-        else:
-            return User.objects.filter(contributor__isnull=False).distinct()
+        project_id = self.kwargs.get('project_pk')
+        return User.objects.filter(contributor__project_id=project_id).distinct()
