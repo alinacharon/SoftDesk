@@ -1,12 +1,13 @@
- # SoftDesk API Documentation
+# SoftDesk API Documentation
 
 ## Register
 
-****Endpoint:****
+\***\*Endpoint:\*\***
 
 POST http://127.0.0.1:8000/api/v1/register/
 
 **Request Body:**
+
 ```json
 {
     "username": "your_username",
@@ -15,6 +16,8 @@ POST http://127.0.0.1:8000/api/v1/register/
     "can_be_contacted": true,
     "can_data_be_shared": false,
 }
+```
+
 ## LogIn
 **Endpoint:**
 
@@ -22,10 +25,12 @@ POST http://127.0.0.1:8000/api/v1/token/
 
 **Request Body:**
 
+```json
 {
   "username": "your_username",
   "password": "your_password"
 }
+```
 ## Refresh Token
 **Endpoint:**
 
@@ -44,25 +49,63 @@ POST http://127.0.0.1:8000/api/v1/projects/
 
 **Request Body:**
 
-{
-  "name": "Project Name",
-  "description": "Project Description",
-  "contributors": [1, 2, 3] // Optional: List of contributor IDs
-}
+ {
+    "name": "Project Name",
+    "description": "Project Description",
+    "type": "Project type",
+    "contributors": [1, 2, 3] // Optional: List of contributor IDs
+    }
 ## View All Projects
 **Endpoint:**
 
 GET http://127.0.0.1:8000/api/v1/projects/
 
-## Check Issues of the Specific Project
-**Endpoint:**
+Request Headers:
 
-GET http://127.0.0.1:8000/api/v1/projects/<project_id>/issues/
+Authorization: JWT <your_token>
+Content-Type: application/json
+
+## Add contributors to a project
+
+**Endpoint:**
+POST http://127.0.0.1:8000/api/v1/projects/<project_id>/add_contributor/
+
+Request Headers:
+
+Authorization: JWT <your_token>
+Content-Type: application/json
+**Request Body:**
+{
+    "user_id": 1
+}
+
+## Delete contributor from the project
+
+**Endpoint:**
+DELETE http://127.0.0.1:8000/api/v1/projects/1/remove_contributor/
+
+Request Headers:
+
+Authorization: JWT <your_token>
+Content-Type: application/json
+**Request Body:**
+{
+    "user_id": 1
+}
 
 ## Create New Issue
 **Endpoint:**
 
-POST http://127.0.0.1:8000/api/v1/projects/<project_id>/issues/
+POST http://127.0.0.1:8000/api/v1/issues/
+
+**Request Body:**
+{
+    "name": "Issue Title",
+    "type": "Issue type", // Choose from those options: 'BUG','FEATURE','TASK'
+    "level": "Issue level", // Choose from those options:'LOW','MEDIUM','HIGH'
+    "assigned_users": [1], // Optional: List of contributor IDs
+    "project": 1 // Project_id is required
+}
 
 Description:
 
@@ -72,14 +115,7 @@ Request Headers:
 
 Authorization: JWT <your_token>
 Content-Type: application/json
-**Request Body:**
 
-
-{
-  "name": "Issue Title",
-  "description": "Detailed description of the issue.",
-  "contributor": 1 // Optional: ID of the contributor to assign the issue to
-}
 Response:
 
 201 Created: Issue created successfully.
@@ -91,7 +127,7 @@ Response:
 ## Update an Issue
 **Endpoint:**
 
-PATCH http://127.0.0.1:8000/api/v1/projects/<project_id>/issues/<issue_id>/
+PATCH http://127.0.0.1:8000/api/v1/issues/<issue_id>/
 
 Description:
 
@@ -116,3 +152,4 @@ Response:
 401 Unauthorized: Invalid token.
 403 Forbidden: User does not have permission to update the issue.
 404 Not Found: Project, issue, or contributor not found.
+```
