@@ -3,7 +3,7 @@ from django.db import models
 
 
 class User(AbstractUser):
-    age = models.PositiveIntegerField(default=18)
+    age = models.PositiveIntegerField()
     can_be_contacted = models.BooleanField(default=False)
     can_data_be_shared = models.BooleanField(default=False)
 
@@ -12,10 +12,8 @@ class User(AbstractUser):
 
 
 class Project(models.Model):
-    name = models.CharField(max_length=50, default='Project')
+    name = models.CharField(max_length=50)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
-    contributors = models.ManyToManyField(
-        User, related_name='project_contributor')
     description = models.TextField(max_length=1200)
     TYPE_CHOICES = [
         ('back-end', 'Back-End'),
@@ -28,25 +26,25 @@ class Project(models.Model):
     updated_time = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
-        # Save project
         super(Project, self).save(*args, **kwargs)
-
-        # Add autor to contributors
-        if not self.contributors.filter(pk=self.author.pk).exists():
-            self.contributors.add(self.author)
+        Contributor.objects.get_or_create(user=self.author, project=self,
+                                          role='AUTHOR')
 
     def __str__(self):
         return f'{self.name} - {self.description[:50]}'
 
 
+class Contributor(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    role = models.CharField(max_length=50, choices=[('AUTHOR', 'Author'), ('CONTRIBUTOR', 'Contributor')])
+
+
 class Issue(models.Model):
-    name = models.CharField(max_length=50, default='Issue')
-    author = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='authored_issues')
-    project = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name='issues')
-    assigned_users = models.ManyToManyField(
-        User, related_name='assigned_issues', blank=True)
+    name = models.CharField(max_length=50)
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='authored_issues')
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='issues')
+    assigned_users = models.ManyToManyField(User, related_name='assigned_issues', blank=True)
 
     TYPE_CHOICES = [
         ('BUG', 'Bug'),
@@ -65,8 +63,7 @@ class Issue(models.Model):
     ]
     type = models.CharField(max_length=50, choices=TYPE_CHOICES)
     level = models.CharField(max_length=50, choices=LEVEL_CHOICES)
-    status = models.CharField(
-        max_length=50, choices=STATUS_CHOICES, default='ToDo')
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='ToDo')
     created_time = models.DateTimeField(auto_now_add=True)
     updated_time = models.DateTimeField(auto_now=True)
 
