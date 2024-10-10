@@ -6,9 +6,6 @@ from .models import *
 class UserRegistrationSerializer(serializers.ModelSerializer):
     """
     Serializer for user registration.
-
-    This serializer is responsible for creating new user accounts. 
-    It includes a password field which is write-only to ensure security.
     """
     password = serializers.CharField(write_only=True)
 
@@ -17,15 +14,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
     def create(self, validated_data):
-        """
-        Creates a new user instance.
-
-        Args:
-            validated_data (dict): The validated data for creating a user.
-
-        Returns:
-            User: The newly created user instance.
-        """
         user = User(**validated_data)
         user.set_password(validated_data['password'])
         user.save()
@@ -35,9 +23,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     """
     Serializer for user details.
-
-    This serializer is used to retrieve user information, including
-    their associated projects as contributors.
     """
     projects = serializers.SerializerMethodField()
 
@@ -47,25 +32,14 @@ class UserSerializer(serializers.ModelSerializer):
                   'can_data_be_shared', 'email', 'projects']
 
     def get_projects(self, obj):
-        """
-        Retrieves a list of project names associated with the user as a contributor.
-
-        Args:
-            obj (User): The user instance for which to retrieve projects.
-
-        Returns:
-            list: A list of project names where the user is a contributor.
-        """
-        projects = Project.objects.filter(contributor__user=obj)
-        return [project.name for project in projects]
+        projects = Project.objects.filter(contributor__user=obj).distinct()
+        project_names = set([project.name for project in projects])
+        return list(project_names)
 
 
 class CommentSerializer(serializers.ModelSerializer):
     """
     Serializer for comments on issues.
-
-    This serializer is responsible for validating and serializing
-    comment data, including the author who is automatically set to the current user.
     """
     author = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
@@ -80,12 +54,19 @@ class CommentSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
+class IssueListSerializer(serializers.ModelSerializer):
+    """
+    Serializer for issue list.
+    """
+
+    class Meta:
+        model = Issue
+        fields = ['id', 'name', 'status']
+
+
 class IssueSerializer(serializers.ModelSerializer):
     """
     Serializer for issue details.
-
-    This serializer handles the creation and validation of issues,
-    including the assignment of users to the issue.
     """
     author = serializers.HiddenField(default=serializers.CurrentUserDefault())
     assigned_users = serializers.PrimaryKeyRelatedField(
@@ -105,11 +86,11 @@ class IssueSerializer(serializers.ModelSerializer):
         try:
             project = Project.objects.get(id=project_id)
         except Project.DoesNotExist:
-            raise serializers.ValidationError("Project not found.")
+            raise serializers.ValidationError("Projet non trouvé.")
         for user in value:
             if not Contributor.objects.filter(project=project, user=user).exists():
                 raise serializers.ValidationError(
-                    f"User with ID {user.id} is not a contributor of this project.")
+                    f"L'utilisateur avec l'ID {user.id} n'est pas un contributeur de ce projet.")
         return value
 
     def create(self, validated_data):
@@ -121,13 +102,10 @@ class IssueSerializer(serializers.ModelSerializer):
 class ProjectSerializer(serializers.ModelSerializer):
     """
     Serializer for project details.
-
-    This serializer manages the serialization and validation of project data,
-    including its contributors and associated issues.
     """
     author = serializers.HiddenField(default=serializers.CurrentUserDefault())
     contributors = serializers.SerializerMethodField()
-    issues = IssueSerializer(many=True, read_only=True)
+    issues = IssueListSerializer(many=True, read_only=True)
 
     class Meta:
         model = Project
@@ -135,14 +113,5 @@ class ProjectSerializer(serializers.ModelSerializer):
                   'author', 'contributors', 'issues']
 
     def get_contributors(self, obj):
-        """
-        Retrieves a list of contributors associated with the project.
-
-        Args:
-            obj (Project): The project instance for which to retrieve contributors.
-
-        Returns:
-            list: A list of dictionaries containing usernames and their roles.
-        """
         contributors = Contributor.objects.filter(project=obj)
         return [{'username': c.user.username, 'role': c.role} for c in contributors]

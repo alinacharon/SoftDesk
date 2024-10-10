@@ -1,5 +1,50 @@
 # SoftDesk API Documentation
 
+## Project Setup Instructions
+
+### Prerequisites
+- Python 3.8 or higher
+- pip (Python package manager)
+- virtualenv (recommended)
+
+### Setup Steps
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/alinacharon/SoftDesk.git
+  
+   ```
+
+2. Create and activate a virtual environment:
+   ```
+   python -m venv venv
+   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+   ```
+
+3. Install the required packages:
+   ```
+   pip install -r requirements.txt
+   ```
+
+4. Set up the database:
+   ```
+   python manage.py migrate
+   ```
+
+5. Create a superuser (admin):
+   ```
+   python manage.py createsuperuser
+   ```
+
+6. Run the development server:
+   ```
+   python manage.py runserver
+   ```
+
+7. Access the API at `http://localhost:8000/api/v1/`
+
+### API Documentation
+
 ## Authentication Endpoints
 
 ### Register
@@ -216,3 +261,9 @@ Common error status codes:
 - 401 Unauthorized: Authentication required or invalid
 - 403 Forbidden: User doesn't have required permissions
 - 404 Not Found: Requested resource doesn't exist
+
+## More information about the API is available in the Swagger UI.
+### After running the server, you can access the API documentation at:
+- Swagger UI: `http://localhost:8000/swagger/`
+- ReDoc: `http://localhost:8000/redoc/`
+
