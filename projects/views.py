@@ -139,12 +139,7 @@ class IssueViewSet(viewsets.ModelViewSet):
         if not project_id:
             return Response({"error": "ID du projet requis."}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            project = Project.objects.get(id=project_id)
-        except Project.DoesNotExist:
-            return Response({"error": "Projet non trouvé."}, status=status.HTTP_404_NOT_FOUND)
-
-        if not Contributor.objects.filter(project=project, user=request.user).exists():
+        if not Contributor.objects.filter(project_id=project_id, user=request.user).exists():
             return Response({"error": f"L'utilisateur {request.user.username} n'est pas un contributeur de ce projet."},
                             status=status.HTTP_403_FORBIDDEN)
 
