@@ -43,7 +43,7 @@
 
 7. Access the API at `http://localhost:8000/api/v1/`
 
-### API Documentation
+# API Documentation
 
 ## Authentication Endpoints
 
