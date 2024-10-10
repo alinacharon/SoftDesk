@@ -168,7 +168,7 @@ class ContributorViewSet(viewsets.ModelViewSet):
     API view for managing contributors associated with projects.
     """
     serializer_class = UserSerializer
-    permission_classes = [ContributorsOnly]
+    permission_classes = [IsAdminUser]
 
     def get_queryset(self):
         project_id = self.kwargs.get('project_pk')
