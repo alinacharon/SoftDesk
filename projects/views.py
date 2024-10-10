@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 
 from .permissions import *
 from .serializers import *
@@ -65,6 +66,16 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         return Project.objects.filter(contributor__user=user)
+    
+    def get_object(self):
+        project_id = self.kwargs.get('pk') 
+        try:
+            project = Project.objects.get(id=project_id)
+        except Project.DoesNotExist:
+            raise PermissionDenied("Projet non trouvé.") 
+        if not Contributor.objects.filter(project=project, user=self.request.user).exists():
+            raise PermissionDenied("Vous n'avez pas de permission pour effectuer cette action.")
+        return project
 
     @action(detail=True, methods=['post'])
     def add_contributor(self, request, pk=None):
@@ -74,13 +85,13 @@ class ProjectViewSet(viewsets.ModelViewSet):
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
             return Response(
-                {"error": "Utilisateur non trouvé"},
+                {"error": "Utilisateur non trouvé."},
                 status=status.HTTP_404_NOT_FOUND
             )
 
         if Contributor.objects.filter(user=user, project=project).exists():
             return Response(
-                {"error": "L'utilisateur est déjà un contributeur"},
+                {"error": "L'utilisateur est déjà un contributeur."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -90,7 +101,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             role='CONTRIBUTOR'
         )
         return Response({
-            "message": f"{user.username} a été ajouté comme contributeur du projet {project.name}"
+            "message": f"{user.username} a été ajouté comme contributeur du projet {project.name}."
         })
 
     @action(detail=True, methods=['delete'])
@@ -111,7 +122,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         if contributor.role == 'AUTHOR':
             return Response(
-                {"error": "Impossible de supprimer l'auteur du projet"},
+                {"error": "Impossible de supprimer l'auteur du projet."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -119,7 +130,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         contributor.delete()
 
         return Response({
-            "message": f"Contributeur {username} supprimé du projet {project.name}"
+            "message": f"Contributeur {username} supprimé du projet {project.name}."
         })
 
 
