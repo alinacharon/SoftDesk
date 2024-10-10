@@ -29,7 +29,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'age', 'can_be_contacted',
-                  'can_data_be_shared', 'email', 'projects']
+                  'can_data_be_shared', 'projects']
 
     def get_projects(self, obj):
         projects = Project.objects.filter(contributor__user=obj).distinct()
