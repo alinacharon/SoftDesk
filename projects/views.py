@@ -66,7 +66,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         user = self.request.user
         return Project.objects.filter(contributor__user=user)
 
-    @action(detail=True, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
+    @action(detail=True, methods=['post'])
     def add_contributor(self, request, pk=None):
         project = self.get_object()
         user_id = request.data.get('user_id')
@@ -93,7 +93,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             "message": f"{user.username} a été ajouté comme contributeur du projet {project.name}"
         })
 
-    @action(detail=True, methods=['delete'], permission_classes=[IsOwnerOrReadOnly])
+    @action(detail=True, methods=['delete'])
     def remove_contributor(self, request, pk=None):
         project = self.get_object()
         user_id = request.data.get('user_id')
