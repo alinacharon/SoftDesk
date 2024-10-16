@@ -4,7 +4,7 @@ from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-
+from rest_framework.exceptions import NotFound
 
 from .permissions import *
 from .serializers import *
@@ -81,7 +81,12 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return Project.objects.filter(contributor__user=user)
+        projects = Project.objects.filter(contributor__user=user)
+
+        if not projects.exists():
+            raise NotFound("Aucun projet trouvé pour cet utilisateur.")
+
+        return projects
 
     def get_object(self):
         project_id = self.kwargs.get('pk')
