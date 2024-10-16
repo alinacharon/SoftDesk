@@ -28,6 +28,7 @@
 
 4. Set up the database:
    ```
+   python manage.py makemigrations
    python manage.py migrate
    ```
 
