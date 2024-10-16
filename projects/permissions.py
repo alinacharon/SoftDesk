@@ -1,6 +1,7 @@
 from rest_framework import permissions
+from rest_framework.exceptions import PermissionDenied, NotFound
 
-from .models import *
+from .models import Contributor
 
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
@@ -14,53 +15,24 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
         return obj.author == request.user
 
 
-class ContributorsOnly(permissions.BasePermission):
+class IsContributor(permissions.BasePermission):
     """
-    Allows access only to the contributors of the project, its issues, and comments.
+    Permission to only allow contributors of a project to access it.
     """
 
     def has_permission(self, request, view):
-        user = request.user
-        if not user.is_authenticated:
-            return False
 
-        if view.action == 'list':
-            project_id = request.GET.get('project_id')
-            issue_id = request.GET.get('issue_id')
+        project_id = view.kwargs.get('project_pk')
 
-            if project_id:
-                return Contributor.objects.filter(project_id=project_id, user=user).exists()
+        if project_id is None:
+            projects = Contributor.objects.filter(
+                user=request.user).values_list('project_id', flat=True)
+            if not projects:
+                raise NotFound("Aucun projet trouvé pour cet utilisateur.")
+            return True
 
-            if issue_id:
-                try:
-                    issue = Issue.objects.get(id=issue_id)
-                except Issue.DoesNotExist:
-                    return False
-                return Contributor.objects.filter(project=issue.project, user=user).exists()
-
-            return Contributor.objects.filter(user=user).exists()
+        if not Contributor.objects.filter(project_id=project_id, user=request.user).exists():
+            raise PermissionDenied(
+                "Vous n'êtes pas un contributeur de ce projet.")
 
         return True
-
-    def has_object_permission(self, request, view, obj):
-        user = request.user
-
-        if isinstance(obj, Project):
-            return Contributor.objects.filter(project=obj, user=user).exists()
-
-        if isinstance(obj, Issue):
-            return Contributor.objects.filter(project=obj.project, user=user).exists()
-
-        if isinstance(obj, Comment):
-            return Contributor.objects.filter(project=obj.issue.project, user=user).exists()
-
-        return False
-
-
-class IsAdminUser(permissions.BasePermission):
-    """
-    Allows access only to admin users to access the view.
-    """
-
-    def has_permission(self, request, view):
-        return request.user.is_superuser

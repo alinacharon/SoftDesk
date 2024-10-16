@@ -1,30 +1,42 @@
-from django.contrib.auth.models import User
 from rest_framework import generics, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from rest_framework.exceptions import PermissionDenied
+from django.shortcuts import get_object_or_404
+
 
 from .permissions import *
 from .serializers import *
+from .models import *
+
+
+def check_age(request):
+    age = int(request.data.get('age', 0))
+    can_data_be_shared = request.data.get('can_data_be_shared', False)
+
+    if can_data_be_shared and age < 15:
+        return Response(
+            {"error": "Vous devez avoir au moins 15 ans pour pouvoir partager vos données."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    return None
 
 
 class UserRegistrationView(generics.CreateAPIView):
     """
     API view for user registration.
     """
+    permission_classes = [AllowAny]
     serializer_class = UserRegistrationSerializer
 
     def create(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             return Response({"error": "Vous êtes déjà inscrit."}, status=status.HTTP_400_BAD_REQUEST)
 
-        age = int(request.data.get('age'))
-        can_data_be_shared = request.data.get('can_data_be_shared')
-        if can_data_be_shared and age < 15:
-            return Response({"error": "Vous devez avoir au moins 15 ans pour pouvoir partager vos données."},
-                            status=status.HTTP_400_BAD_REQUEST)
+        age_check_response = check_age(request)
+        if age_check_response:
+            return age_check_response
 
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
@@ -36,11 +48,11 @@ class UserRegistrationView(generics.CreateAPIView):
 
 class UserProfileView(RetrieveUpdateDestroyAPIView):
     """
-    API view for user to managing his profile.
+    API view for user to manage his profile.
     """
+    permission_classes = [IsAuthenticated]
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         user = self.request.user
@@ -48,6 +60,10 @@ class UserProfileView(RetrieveUpdateDestroyAPIView):
         return Response(serializer.data)
 
     def update(self, request, *args, **kwargs):
+        age_check_response = check_age(request)
+        if age_check_response:
+            return age_check_response
+
         user = self.request.user
         serializer = UserSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
@@ -61,20 +77,21 @@ class ProjectViewSet(viewsets.ModelViewSet):
     API view for managing projects.
     """
     serializer_class = ProjectSerializer
-    permission_classes = [ContributorsOnly, IsOwnerOrReadOnly]
+    permission_classes = [IsOwnerOrReadOnly]
 
     def get_queryset(self):
         user = self.request.user
         return Project.objects.filter(contributor__user=user)
-    
+
     def get_object(self):
-        project_id = self.kwargs.get('pk') 
+        project_id = self.kwargs.get('pk')
         try:
             project = Project.objects.get(id=project_id)
         except Project.DoesNotExist:
-            raise PermissionDenied("Projet non trouvé.") 
+            raise NotFound("Projet non trouvé.")
         if not Contributor.objects.filter(project=project, user=self.request.user).exists():
-            raise PermissionDenied("Vous n'avez pas de permission pour effectuer cette action.")
+            raise PermissionDenied(
+                "Vous n'êtes pas un contributeur de ce projet.")
         return project
 
     @action(detail=True, methods=['post'])
@@ -139,6 +156,8 @@ class IssueViewSet(viewsets.ModelViewSet):
     API view for managing issues within projects.
     """
     serializer_class = IssueSerializer
+    permission_classes = [IsOwnerOrReadOnly,
+                          IsContributor]
 
     def get_queryset(self):
         project_id = self.kwargs.get('project_pk')
@@ -150,10 +169,6 @@ class IssueViewSet(viewsets.ModelViewSet):
         if not project_id:
             return Response({"error": "ID du projet requis."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not Contributor.objects.filter(project_id=project_id, user=request.user).exists():
-            return Response({"error": f"L'utilisateur {request.user.username} n'est pas un contributeur de ce projet."},
-                            status=status.HTTP_403_FORBIDDEN)
-
         return super().create(request, *args, **kwargs)
 
 
@@ -162,20 +177,10 @@ class CommentViewSet(viewsets.ModelViewSet):
     API view for managing comments on issues.
     """
     serializer_class = CommentSerializer
-    permission_classes = [ContributorsOnly, IsOwnerOrReadOnly]
-
-    def get_queryset(self):
-        issue_id = self.kwargs.get('issue_pk')
-        return Comment.objects.filter(issue_id=issue_id)
-
-
-class ContributorViewSet(viewsets.ModelViewSet):
-    """
-    API view for managing contributors associated with projects.
-    """
-    serializer_class = UserSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsOwnerOrReadOnly, IsContributor]
 
     def get_queryset(self):
         project_id = self.kwargs.get('project_pk')
-        return User.objects.filter(contributor__project_id=project_id).distinct()
+        issue_id = self.kwargs.get('issue_pk')
+        issue = get_object_or_404(Issue, id=issue_id, project_id=project_id)
+        return Comment.objects.filter(issue=issue)
