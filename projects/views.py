@@ -96,7 +96,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             raise NotFound("Projet non trouvé.")
         if not Contributor.objects.filter(project=project, user=self.request.user).exists():
             raise PermissionDenied(
-                "Vous n'êtes pas un contributeur de ce projet.")
+                "Vous n'êtes pas contributeur de ce projet.")
         return project
 
     @action(detail=True, methods=['post'])

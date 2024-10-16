@@ -26,6 +26,6 @@ class IsContributor(permissions.BasePermission):
 
         if not Contributor.objects.filter(project_id=project_id, user=request.user).exists():
             raise PermissionDenied(
-                "Vous n'êtes pas un contributeur de ce projet.")
+                "Vous n'êtes pas contributeur de ce projet.")
 
         return True
