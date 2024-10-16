@@ -28,6 +28,7 @@
 
 4. Set up the database:
    ```
+   python manage.py makemigrations
    python manage.py migrate
    ```
 
@@ -43,7 +44,7 @@
 
 7. Access the API at `http://localhost:8000/api/v1/`
 
-# API Documentation
+# Endpoints
 
 ## Authentication Endpoints
 
