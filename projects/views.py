@@ -168,14 +168,6 @@ class IssueViewSet(viewsets.ModelViewSet):
         project_id = self.kwargs.get('project_pk')
         return Issue.objects.filter(project_id=project_id)
 
-    def create(self, request, *args, **kwargs):
-        project_id = self.kwargs.get('project_pk')
-
-        if not project_id:
-            return Response({"error": "ID du projet requis."}, status=status.HTTP_400_BAD_REQUEST)
-
-        return super().create(request, *args, **kwargs)
-
 
 class CommentViewSet(viewsets.ModelViewSet):
     """
