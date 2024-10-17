@@ -31,6 +31,13 @@
    python manage.py makemigrations
    python manage.py migrate
    ```
+   **Note:** If the migrations do not apply successfully, you may need to delete the database and run the following commands:
+
+    ```sh
+    rm db.sqlite3  # Remove the database file
+    python manage.py makemigrations projects
+    python manage.py migrate
+    ```
 
 5. Create a superuser (admin):
    ```
