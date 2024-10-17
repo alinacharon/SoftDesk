@@ -36,7 +36,15 @@ class UserSerializer(serializers.ModelSerializer):
         project_names = set([project.name for project in projects])
         return list(project_names)
 
+class CommentSerializerList(serializers.ModelSerializer):
+    """
+    Serializer for comments list in issues.
+    """
 
+    class Meta:
+        model = Comment
+        fields = ['id', 'description']
+    
 class CommentSerializer(serializers.ModelSerializer):
     """
     Serializer for comments on issues.
@@ -45,8 +53,8 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ['id', 'description', 'author',
-                  'created_time', 'updated_time']
+        fields = ['id', 'description',
+                  'created_time', 'updated_time','author']
 
     def create(self, validated_data):
         issue_id = self.context['view'].kwargs.get('issue_pk')
@@ -72,7 +80,7 @@ class IssueSerializer(serializers.ModelSerializer):
     assigned_users = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), many=True
     )
-    comments = CommentSerializer(
+    comments = CommentSerializerList(
         many=True, read_only=True, source='comment_set')
 
     class Meta:
