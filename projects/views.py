@@ -166,7 +166,10 @@ class IssueViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         project_id = self.kwargs.get('project_pk')
-        return Issue.objects.filter(project_id=project_id)
+        issue = Issue.objects.filter(project_id=project_id)
+        if not issue.exists():
+            raise NotFound("Aucun problème trouvé pour ce projet.")
+        return issue
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -180,4 +183,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         project_id = self.kwargs.get('project_pk')
         issue_id = self.kwargs.get('issue_pk')
         issue = get_object_or_404(Issue, id=issue_id, project_id=project_id)
-        return Comment.objects.filter(issue=issue)
+        comments = Comment.objects.filter(issue=issue)
+        if not comments.exists():
+            raise NotFound("Aucun commentaire trouvé pour ce problème.")
+        return comments
